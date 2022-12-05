@@ -10,25 +10,16 @@ function setupSocketAPI(http) {
     })
     gIo.on('connection', socket => {
         logger.info(`New connected socket [id: ${socket.id}]`)
-        socket.on('disconnect', socket => {
+        socket.on('disconnect', () => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
-            
+            console.log(socket, 'socket');
+            if (socket.wapId) {
+                socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
+            }
         })
 
-        socket.on('mouseEvent', (sendedCursor) => {            
-            socket.broadcast.emit('mouseEvent', sendedCursor)
-        })
-        
-        socket.on('cmpChange', (wap) => {
-            socket.broadcast.emit('cmpChange', wap)
-        })
-        
-        socket.on('openWorkSpace', (wap) => {
-            socket.broadcast.emit('openWorkSpace', wap)
-        })
-
-        socket.on('joinWorkSpace', (wapId) => {
-            
+        socket.on('joinWorkSpace', ({wapId, cursorId}) => {
+            if (!socket.cursorId) socket.cursorId = cursorId
             if (socket.wapId === wapId) return
             if (socket.wapId) {
                 socket.leave(socket.wapId)
@@ -38,9 +29,13 @@ function setupSocketAPI(http) {
             socket.join(wapId);
             socket.wapId = wapId;
         })
+
+        socket.on('mouseEvent', (sendedCursor) => {            
+            socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor);    
+        })
         
-        socket.on('leaveWorkSpace', () => {            
-            socket.leave()
+        socket.on('cmpChange', (wap) => {
+            socket.broadcast.to(socket.wapId).emit('cmpChange', wap);
         })
 
         socket.on('chat-set-topic', topic => {
