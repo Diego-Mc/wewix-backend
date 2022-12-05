@@ -12,20 +12,25 @@ function setupSocketAPI(http) {
         logger.info(`New connected socket [id: ${socket.id}]`)
         socket.on('disconnect', socket => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
+            
         })
 
         socket.on('mouseEvent', (sendedCursor) => {            
             socket.broadcast.emit('mouseEvent', sendedCursor)
         })
-
+        
         socket.on('cmpChange', (wap) => {
             socket.broadcast.emit('cmpChange', wap)
         })
-
+        
         socket.on('openWorkSpace', (wap) => {
+            socket.join(wap._id)
             socket.broadcast.emit('openWorkSpace', wap)
         })
-
+        
+        socket.on('leaveWorkSpace', () => {            
+            socket.leave()
+        })
 
         socket.on('chat-set-topic', topic => {
             if (socket.myTopic === topic) return
