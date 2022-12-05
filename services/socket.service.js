@@ -24,8 +24,19 @@ function setupSocketAPI(http) {
         })
         
         socket.on('openWorkSpace', (wap) => {
-            socket.join(wap._id)
             socket.broadcast.emit('openWorkSpace', wap)
+        })
+
+        socket.on('joinWorkSpace', (wapId) => {
+            
+            if (socket.wapId === wapId) return
+            if (socket.wapId) {
+                socket.leave(socket.wapId)
+                logger.info(`Socket is leaving topic ${socket.wapId} [id: ${socket.id}]`)
+            }
+
+            socket.join(wapId);
+            socket.wapId = wapId;
         })
         
         socket.on('leaveWorkSpace', () => {            
