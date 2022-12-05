@@ -6,7 +6,7 @@ async function getWaps(req, res) {
   try {
     logger.debug('Getting Waps')
     const filterBy = {
-      txt: req.query.txt || '',
+      // txt: req.query.txt || ''
     }
     const waps = await wapService.query(filterBy)
     res.json(waps)
@@ -28,11 +28,11 @@ async function getWapById(req, res) {
 }
 
 async function addWap(req, res) {
-  const { loggedinUser } = req
+  // const {loggedinUser} = req
 
   try {
     const wap = req.body
-    wap.owner = loggedinUser
+    // wap.owner = loggedinUser
     const addedWap = await wapService.add(wap)
     res.json(addedWap)
   } catch (err) {
@@ -40,6 +40,7 @@ async function addWap(req, res) {
     res.status(500).send({ err: 'Failed to add wap' })
   }
 }
+
 
 async function updateWap(req, res) {
   try {
@@ -49,6 +50,7 @@ async function updateWap(req, res) {
   } catch (err) {
     logger.error('Failed to update wap', err)
     res.status(500).send({ err: 'Failed to update wap' })
+
   }
 }
 
@@ -64,32 +66,34 @@ async function removeWap(req, res) {
 }
 
 async function addWapMsg(req, res) {
-  const { loggedinUser } = req
+  const {loggedinUser} = req
   try {
     const wapId = req.params.id
     const msg = {
       txt: req.body.txt,
-      by: loggedinUser,
+      by: loggedinUser
     }
     const savedMsg = await wapService.addWapMsg(wapId, msg)
     res.json(savedMsg)
   } catch (err) {
     logger.error('Failed to update wap', err)
     res.status(500).send({ err: 'Failed to update wap' })
+
   }
 }
 
 async function removeWapMsg(req, res) {
-  const { loggedinUser } = req
+  const {loggedinUser} = req
   try {
     const wapId = req.params.id
-    const { msgId } = req.params
+    const {msgId} = req.params
 
     const removedId = await wapService.removeWapMsg(wapId, msgId)
     res.send(removedId)
   } catch (err) {
     logger.error('Failed to remove wap msg', err)
     res.status(500).send({ err: 'Failed to remove wap msg' })
+
   }
 }
 
@@ -100,5 +104,5 @@ module.exports = {
   updateWap,
   removeWap,
   addWapMsg,
-  removeWapMsg,
+  removeWapMsg
 }

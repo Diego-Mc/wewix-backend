@@ -1,1 +1,1 @@
-Coding Academy - production ready server # wewix-backend
+Coding Academy - production ready server 

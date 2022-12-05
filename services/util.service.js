@@ -57,7 +57,7 @@ function generateRandomName() {
     'wing',
     'yang',
     'snow',
-    'fire',
+    'fire'
   ]
   return (
     names[Math.floor(Math.random() * names.length)] +
