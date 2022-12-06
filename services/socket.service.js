@@ -3,32 +3,97 @@ const logger = require('./logger.service')
 var gIo = null
 
 function setupSocketAPI(http) {
+    var users = []
+
     gIo = require('socket.io')(http, {
         cors: {
             origin: '*',
         }
     })
+
     gIo.on('connection', socket => {
+        
         logger.info(`New connected socket [id: ${socket.id}]`)
-        socket.on('disconnect', socket => {
+        socket.on('disconnect', () => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
-        })
-        socket.on('chat-set-topic', topic => {
-            if (socket.myTopic === topic) return
-            if (socket.myTopic) {
-                socket.leave(socket.myTopic)
-                logger.info(`Socket is leaving topic ${socket.myTopic} [id: ${socket.id}]`)
+            if (socket.wapId) {
+                socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
             }
-            socket.join(topic)
-            socket.myTopic = topic
         })
-        socket.on('chat-send-msg', msg => {
-            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.myTopic}`)
-            // emits to all sockets:
-            // gIo.emit('chat addMsg', msg)
-            // emits only to sockets in the same room
-            gIo.to(socket.myTopic).emit('chat-add-msg', msg)
+
+        socket.on('joinWorkSpace', ({wapId, cursorId}) => {
+            if (!socket.cursorId) socket.cursorId = cursorId
+            if (socket.wapId === wapId) return
+            if (socket.wapId) {
+                socket.leave(socket.wapId)
+                logger.info(`Socket is leaving topic ${socket.wapId} [id: ${socket.id}]`)
+            }
+
+            socket.join(wapId);
+            socket.wapId = wapId;
         })
+
+        socket.on('mouseEvent', (sendedCursor) => {            
+            socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor);    
+        })
+        
+        socket.on('cmpChange', (wap) => {
+            socket.broadcast.to(socket.wapId).emit('cmpChange', wap);
+        })
+
+        socket.on('doDisconnect', () => {
+            if (socket.wapId) {
+                socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
+            }
+        })
+
+        socket.on('startConversation', ({chatId, userId, adminId}) => {  
+            
+            if (!adminId) users.push({chatId, userId, unread: 0})
+            gIo.emit('emitToAdmin', users)
+            if (adminId) return
+            
+            // if (socket.chatId === chatId) return
+            // if (socket.chatId) {
+            //     socket.leave(socket.chatId)
+            //     logger.info(`Socket is leaving topic ${socket.chatId} [id: ${socket.id}]`)
+            // }
+            // socket.join(chatId)
+            // socket.chatId = chatId
+
+            if (socket.userId === userId) return
+            if (socket.userId) {
+                socket.leave(socket.userId)
+                logger.info(`Socket is leaving topic ${socket.userId} [id: ${socket.id}]`)
+            }
+            socket.join(userId)
+            socket.userId = userId
+            gIo.to(socket.userId).emit('setGuestActiveConversation', userId)
+        })
+
+        socket.on('listenAll', () => {
+            users.forEach(({userId}) => {
+                if (!socket.rooms.has(userId)) socket.join(userId)
+            })
+        })
+
+        socket.on('activateConversation', (userId) => {
+            if (socket.userId) {
+                // socket.leave(socket.userId)
+                logger.info(`Admin is leaving topic ${socket.userId} [id: ${socket.id}]`)
+            }
+            // socket.join(userId)
+            socket.userId = userId
+        })
+
+
+        socket.on('addMsg', msg => {
+            console.log('msg:', msg)
+            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`)
+            msg.id = socket.userId
+            gIo.to(socket.userId).emit('addMsg', msg) //
+        })
+
         socket.on('user-watch', userId => {
             logger.info(`user-watch from socket [id: ${socket.id}], on user ${userId}`)
             socket.join('watching:' + userId)
