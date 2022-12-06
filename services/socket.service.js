@@ -3,6 +3,8 @@ const logger = require('./logger.service')
 var gIo = null
 
 function setupSocketAPI(http) {
+    var conversations = []
+
     gIo = require('socket.io')(http, {
         cors: {
             origin: '*',
@@ -10,7 +12,7 @@ function setupSocketAPI(http) {
     })
 
     gIo.on('connection', socket => {
-        var conversations = []
+        
         logger.info(`New connected socket [id: ${socket.id}]`)
         socket.on('disconnect', () => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
@@ -45,23 +47,45 @@ function setupSocketAPI(http) {
             }
         })
 
-        socket.on('startConversation', ({wapId, guestId}) => {   
-            conversations.push({wapId, guestId})    
-            console.log(conversations);     
-            if (socket.wapId === wapId) return
-            if (socket.wapId) {
-                socket.leave(socket.wapId)
-                logger.info(`Socket is leaving topic ${socket.wapId} [id: ${socket.id}]`)
+        socket.on('startConversation', ({chatId, userId, adminId}) => {  
+            
+            if (!adminId) conversations.push({chatId, userId})
+            gIo.emit('emitToAdmin', conversations)
+            if (adminId) return
+            
+            // if (socket.chatId === chatId) return
+            // if (socket.chatId) {
+            //     socket.leave(socket.chatId)
+            //     logger.info(`Socket is leaving topic ${socket.chatId} [id: ${socket.id}]`)
+            // }
+            // socket.join(chatId)
+            // socket.chatId = chatId
+
+            if (socket.userId === userId) return
+            if (socket.userId) {
+                socket.leave(socket.userId)
+                logger.info(`Socket is leaving topic ${socket.userId} [id: ${socket.id}]`)
             }
-            socket.join(wapId)
-            socket.wapId = wapId
+            socket.join(userId)
+            socket.userId = userId
+            gIo.to(socket.userId).emit('setGuestActiveConversation', userId)
+        })
+
+        socket.on('activateConversation', (userId) => {
+            if (socket.userId) {
+                socket.leave(socket.userId)
+                logger.info(`Admin is leaving topic ${socket.userId} [id: ${socket.id}]`)
+            }
+            socket.join(userId)
+            socket.userId = userId
         })
 
 
         socket.on('addMsg', msg => {
             console.log('msg:', msg)
-            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.siteId}`)
-            gIo.to(socket.siteId).emit('addMsg', msg)
+            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`)
+            msg.id = socket.userId
+            gIo.to(socket.userId).emit('addMsg', msg) //
         })
 
         socket.on('user-watch', userId => {
