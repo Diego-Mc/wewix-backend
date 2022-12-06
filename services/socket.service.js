@@ -8,11 +8,12 @@ function setupSocketAPI(http) {
             origin: '*',
         }
     })
+
     gIo.on('connection', socket => {
+        var conversations = []
         logger.info(`New connected socket [id: ${socket.id}]`)
         socket.on('disconnect', () => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
-            console.log(socket, 'socket');
             if (socket.wapId) {
                 socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
             }
@@ -38,22 +39,31 @@ function setupSocketAPI(http) {
             socket.broadcast.to(socket.wapId).emit('cmpChange', wap);
         })
 
-        socket.on('chat-set-topic', topic => {
-            if (socket.myTopic === topic) return
-            if (socket.myTopic) {
-                socket.leave(socket.myTopic)
+        socket.on('doDisconnect', () => {
+            if (socket.wapId) {
+                socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
+            }
+        })
+
+        socket.on('startConversation', ({wapId, guestId}) => {   
+            conversations.push({wapId, guestId})    
+            console.log(conversations);     
+            if (socket.siteId === siteId) return
+            if (socket.siteId) {
+                socket.leave(socket.siteId)
                 logger.info(`Socket is leaving topic ${socket.myTopic} [id: ${socket.id}]`)
             }
-            socket.join(topic)
-            socket.myTopic = topic
+            socket.join(siteId)
+            socket.siteId = siteId
         })
-        socket.on('chat-send-msg', msg => {
-            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.myTopic}`)
-            // emits to all sockets:
-            // gIo.emit('chat addMsg', msg)
-            // emits only to sockets in the same room
-            gIo.to(socket.myTopic).emit('chat-add-msg', msg)
+
+
+        socket.on('addMsg', msg => {
+            console.log('msg:', msg)
+            logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.siteId}`)
+            gIo.to(socket.siteId).emit('addMsg', msg)
         })
+
         socket.on('user-watch', userId => {
             logger.info(`user-watch from socket [id: ${socket.id}], on user ${userId}`)
             socket.join('watching:' + userId)
