@@ -1,7 +1,7 @@
 
 const dbService = require('../../services/db.service')
 const logger = require('../../services/logger.service')
-const reviewService = require('../review/review.service')
+const userWapService = require('../userwap/userWap.service')
 const ObjectId = require('mongodb').ObjectId
 
 module.exports = {
@@ -39,10 +39,10 @@ async function getById(userId) {
         const user = await collection.findOne({ _id: ObjectId(userId) })
         delete user.password
 
-        user.givenReviews = await reviewService.query({ byUserId: ObjectId(user._id) })
-        user.givenReviews = user.givenReviews.map(review => {
-            delete review.byUser
-            return review
+        user.givenUserWaps = await userWapService.query({ byUserId: ObjectId(user._id) })
+        user.givenUserWaps = user.givenUserWaps.map(userWap => {
+            delete userWap.byUser
+            return userWap
         })
 
         return user
@@ -78,8 +78,9 @@ async function update(user) {
         const userToSave = {
             _id: ObjectId(user._id), // needed for the returnd obj
             fullname: user.fullname,
-            score: user.score,
+            waps: user.waps,
         }
+        console.log(userToSave)
         const collection = await dbService.getCollection('user')
         await collection.updateOne({ _id: userToSave._id }, { $set: userToSave })
         return userToSave
