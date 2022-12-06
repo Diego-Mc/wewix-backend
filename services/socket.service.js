@@ -48,13 +48,13 @@ function setupSocketAPI(http) {
         socket.on('startConversation', ({wapId, guestId}) => {   
             conversations.push({wapId, guestId})    
             console.log(conversations);     
-            if (socket.siteId === siteId) return
-            if (socket.siteId) {
-                socket.leave(socket.siteId)
-                logger.info(`Socket is leaving topic ${socket.myTopic} [id: ${socket.id}]`)
+            if (socket.wapId === wapId) return
+            if (socket.wapId) {
+                socket.leave(socket.wapId)
+                logger.info(`Socket is leaving topic ${socket.wapId} [id: ${socket.id}]`)
             }
-            socket.join(siteId)
-            socket.siteId = siteId
+            socket.join(wapId)
+            socket.wapId = wapId
         })
 
 
