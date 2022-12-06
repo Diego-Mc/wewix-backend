@@ -3,7 +3,7 @@ const logger = require('./logger.service')
 var gIo = null
 
 function setupSocketAPI(http) {
-    var conversations = []
+    var users = []
 
     gIo = require('socket.io')(http, {
         cors: {
@@ -49,8 +49,8 @@ function setupSocketAPI(http) {
 
         socket.on('startConversation', ({chatId, userId, adminId}) => {  
             
-            if (!adminId) conversations.push({chatId, userId})
-            gIo.emit('emitToAdmin', conversations)
+            if (!adminId) users.push({chatId, userId, unread: 0})
+            gIo.emit('emitToAdmin', users)
             if (adminId) return
             
             // if (socket.chatId === chatId) return
@@ -71,12 +71,18 @@ function setupSocketAPI(http) {
             gIo.to(socket.userId).emit('setGuestActiveConversation', userId)
         })
 
+        socket.on('listenAll', () => {
+            users.forEach(({userId}) => {
+                if (!socket.rooms.has(userId)) socket.join(userId)
+            })
+        })
+
         socket.on('activateConversation', (userId) => {
             if (socket.userId) {
-                socket.leave(socket.userId)
+                // socket.leave(socket.userId)
                 logger.info(`Admin is leaving topic ${socket.userId} [id: ${socket.id}]`)
             }
-            socket.join(userId)
+            // socket.join(userId)
             socket.userId = userId
         })
 
