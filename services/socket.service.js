@@ -12,16 +12,20 @@ function setupSocketAPI(http) {
     })
 
     gIo.on('connection', socket => {
-        
+
         logger.info(`New connected socket [id: ${socket.id}]`)
         socket.on('disconnect', () => {
             logger.info(`Socket disconnected [id: ${socket.id}]`)
             if (socket.wapId) {
                 socket.broadcast.to(socket.wapId).emit('userDisconnected', socket.cursorId);
             }
+            if (socket.guestData) {
+                _sendGuestData(socket.adminId)
+                return
+            }
         })
 
-        socket.on('joinWorkSpace', ({wapId, cursorId}) => {
+        socket.on('joinWorkSpace', ({ wapId, cursorId }) => {
             if (!socket.cursorId) socket.cursorId = cursorId
             if (socket.wapId === wapId) return
             if (socket.wapId) {
@@ -33,10 +37,10 @@ function setupSocketAPI(http) {
             socket.wapId = wapId;
         })
 
-        socket.on('mouseEvent', (sendedCursor) => {            
-            socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor);    
+        socket.on('mouseEvent', (sendedCursor) => {
+            socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor);
         })
-        
+
         socket.on('cmpChange', (wap) => {
             socket.broadcast.to(socket.wapId).emit('cmpChange', wap);
         })
@@ -47,68 +51,93 @@ function setupSocketAPI(http) {
             }
         })
 
-        socket.on('startConversation', ({chatId, userId, adminId}) => {  
-            
-            if (!adminId) users.push({chatId, userId, unread: 0})
-            gIo.emit('emitToAdmin', users)
-            if (adminId) return
-            
-            // if (socket.chatId === chatId) return
-            // if (socket.chatId) {
-            //     socket.leave(socket.chatId)
-            //     logger.info(`Socket is leaving topic ${socket.chatId} [id: ${socket.id}]`)
-            // }
-            // socket.join(chatId)
-            // socket.chatId = chatId
+        socket.on('startConversation', ({ chatId, userId, adminId }) => {
 
-            if (socket.userId === userId) return
-            if (socket.userId) {
-                socket.leave(socket.userId)
-                logger.info(`Socket is leaving topic ${socket.userId} [id: ${socket.id}]`)
+            if (adminId) {
+                socket.userId = chatId
+                _sendGuestData(socket.userId)
+                return
             }
-            socket.join(userId)
+
+            socket.guestData = { userId, unread: 0 }
+            socket.adminId = chatId
             socket.userId = userId
-            gIo.to(socket.userId).emit('setGuestActiveConversation', userId)
+
+            _sendGuestData(socket.adminId)
         })
 
-        socket.on('listenAll', () => {
-            users.forEach(({userId}) => {
-                if (!socket.rooms.has(userId)) socket.join(userId)
-            })
+        socket.on('activateChat', guestId => {
+            socket.activeConversation = guestId
+            _resetUnreadCount(guestId)
+            _sendGuestData(socket.userId)
         })
 
-        socket.on('activateConversation', (userId) => {
-            if (socket.userId) {
-                // socket.leave(socket.userId)
-                logger.info(`Admin is leaving topic ${socket.userId} [id: ${socket.id}]`)
-            }
-            // socket.join(userId)
-            socket.userId = userId
+        socket.on('leaveConversation', (chatId) => {
+            socket.guestData = null
+            _sendGuestData(chatId)
         })
 
-
-        socket.on('addMsg', msg => {
+        socket.on('addMsg', ({msg, activeConversation}) => {
             console.log('msg:', msg)
             logger.info(`New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`)
             msg.id = socket.userId
-            gIo.to(socket.userId).emit('addMsg', msg) //
-        })
 
-        socket.on('user-watch', userId => {
-            logger.info(`user-watch from socket [id: ${socket.id}], on user ${userId}`)
-            socket.join('watching:' + userId)
-            
-        })
-        socket.on('set-user-socket', userId => {
-            logger.info(`Setting socket.userId = ${userId} for socket [id: ${socket.id}]`)
-            socket.userId = userId
-        })
-        socket.on('unset-user-socket', () => {
-            logger.info(`Removing socket.userId for socket [id: ${socket.id}]`)
-            delete socket.userId
-        })
 
+            if (!socket.adminId) {
+                addMsgFromAdmin(msg, activeConversation, null)
+                return
+            }
+
+            _addMsgFromUser(msg, socket, socket.adminId)
+            _sendGuestData(socket.adminId)
+        }),
+
+        socket.on('typing', (userId) => {
+            if (socket.adminId) emitToUser({ type: 'typing', data: userId, userId: socket.adminId }) //gIo.to(socket.adminId).emit('typing', userId);
+            else gIo.to(socket.activeConversation).emit('typing', 'Admin');
+        })
     })
+}
+
+async function addMsgFromAdmin(msg, guestId, adminSocket) {
+    
+    const guestSocket = await _getUserSocket(guestId)
+    if (!guestSocket) return //ADD user MSg
+
+    msg.isFromAdmin = true
+
+    guestSocket.emit('addAdminMsg', msg)
+}
+
+async function _addMsgFromUser(msg, guestSocket, adminId) {
+    const adminSocket = await _getUserSocket(adminId)
+    if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
+    else guestSocket.guestData.msgs = [msg]
+
+    if (adminSocket && (adminSocket.activeConversation === guestSocket.userId)) guestSocket.guestData.unread = 0
+    else {
+        guestSocket.guestData.unread++
+    }
+
+    msg.id = adminId
+    msg.isFromAdmin = true
+    guestSocket.emit('addOwnMsg', msg)
+}
+
+async function _sendGuestData(adminId) {
+    const adminSocket = await _getUserSocket(adminId)
+
+    if (!adminSocket) return
+
+    let guests = await _getAllGuestsData()
+    guests = guests.filter(guest => guest && guest.userId !== adminSocket.userId)
+    adminSocket.emit('updateGuests', guests)
+}
+
+
+async function _resetUnreadCount(guestId) {
+    const guest = await _getUserSocket(guestId)
+    guest.guestData.unread = 0
 }
 
 function emitTo({ type, data, label }) {
@@ -123,7 +152,7 @@ async function emitToUser({ type, data, userId }) {
     if (socket) {
         logger.info(`Emiting event: ${type} to user: ${userId} socket [id: ${socket.id}]`)
         socket.emit(type, data)
-    }else {
+    } else {
         logger.info(`No active socket for user: ${userId}`)
         // _printSockets()
     }
@@ -133,7 +162,7 @@ async function emitToUser({ type, data, userId }) {
 // Optionally, broadcast to a room / to all
 async function broadcast({ type, data, room = null, userId }) {
     userId = userId.toString()
-    
+
     logger.info(`Broadcasting event: ${type}`)
     const excludedSocket = await _getUserSocket(userId)
     if (room && excludedSocket) {
@@ -162,6 +191,13 @@ async function _getAllSockets() {
     return sockets
 }
 
+async function _getAllGuestsData() {
+    // return all Socket instances
+    const sockets = await gIo.fetchSockets()
+    const data = sockets.map(s => s.guestData)
+    return data
+}
+
 async function _printSockets() {
     const sockets = await _getAllSockets()
     console.log(`Sockets: (count: ${sockets.length}):`)
@@ -175,9 +211,9 @@ module.exports = {
     // set up the sockets service and define the API
     setupSocketAPI,
     // emit to everyone / everyone in a specific room (label)
-    emitTo, 
+    emitTo,
     // emit to a specific user (if currently active in system)
-    emitToUser, 
+    emitToUser,
     // Send to all sockets BUT not the current socket - if found
     // (otherwise broadcast to a room / to all)
     broadcast,
