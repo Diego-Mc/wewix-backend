@@ -86,6 +86,7 @@ function setupSocketAPI(http) {
       logger.info(
         `New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`
       )
+
       msg.id = socket.userId
     
       if (!socket.adminId) {
@@ -154,7 +155,6 @@ async function _sendGuestData(adminId) {
 }
 
 async function _resetUnreadCount(guestId) {
-    console.log('guestId:', guestId)
   const guest = await _getUserSocket(guestId)
   guest.guestData.unread = 0
 }
