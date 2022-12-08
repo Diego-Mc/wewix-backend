@@ -87,9 +87,9 @@ function setupSocketAPI(http) {
         `New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`
       )
       msg.id = socket.userId
-
+    
       if (!socket.adminId) {
-        addMsgFromAdmin(msg, activeConversation, null)
+        addMsgFromAdmin(msg, activeConversation, socket)
         return
       }
 
@@ -114,12 +114,19 @@ async function addMsgFromAdmin(msg, guestId, adminSocket) {
   if (!guestSocket) return //ADD user MSg
 
   msg.isFromAdmin = true
-
+//   console.log('guestSocket:', guestSocket.guestData)
+  if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
+  else {
+    guestSocket.guestData.msgs = [msg]
+  }
+  
+  _sendGuestData(adminSocket.userId)
   guestSocket.emit('addAdminMsg', msg)
 }
 
 async function _addMsgFromUser(msg, guestSocket, adminId) {
   const adminSocket = await _getUserSocket(adminId)
+
   if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
   else guestSocket.guestData.msgs = [msg]
 
@@ -130,7 +137,7 @@ async function _addMsgFromUser(msg, guestSocket, adminId) {
   }
 
   msg.id = adminId
-  msg.isFromAdmin = true
+//   msg.isFromAdmin = true 
   guestSocket.emit('addOwnMsg', msg)
 }
 
@@ -147,6 +154,7 @@ async function _sendGuestData(adminId) {
 }
 
 async function _resetUnreadCount(guestId) {
+    console.log('guestId:', guestId)
   const guest = await _getUserSocket(guestId)
   guest.guestData.unread = 0
 }
