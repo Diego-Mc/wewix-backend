@@ -26,6 +26,16 @@ async function getWapById(req, res) {
     res.status(500).send({ err: 'Failed to get wap' })
   }
 }
+async function getWapByName(req, res) {
+  try {
+    const wapName = req.params.name
+    const wap = await wapService.getByName(wapName)
+    res.json(wap)
+  } catch (err) {
+    logger.error('Failed to get wap', err)
+    res.status(500).send({ err: 'Failed to get wap' })
+  }
+}
 
 async function addWap(req, res) {
   // const {loggedinUser} = req
@@ -97,6 +107,19 @@ async function removeWapMsg(req, res) {
   }
 }
 
+async function getUserWaps(req, res) {
+  try {
+    const userWapIds = Object.values(req.query)
+    logger.debug('Getting Waps')
+    const waps = await wapService.getUserWaps(userWapIds)
+    res.json(waps)
+  } catch (err) {
+    logger.error('Failed to get waps', err)
+    res.status(500).send({ err: 'Failed to get waps' })
+  }
+}
+
+
 module.exports = {
   getWaps,
   getWapById,
@@ -104,5 +127,7 @@ module.exports = {
   updateWap,
   removeWap,
   addWapMsg,
-  removeWapMsg
+  removeWapMsg,
+  getWapByName,
+  getUserWaps
 }
