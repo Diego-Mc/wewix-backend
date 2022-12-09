@@ -57,6 +57,7 @@ function setupSocketAPI(http) {
     })
 
     socket.on('startConversation', ({ chatId, userId, adminId }) => {
+      console.log('chatId, userId, adminId:', chatId, userId, adminId)
       if (adminId) {
         socket.userId = chatId
         _sendGuestData(socket.userId)
