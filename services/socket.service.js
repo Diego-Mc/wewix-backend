@@ -18,12 +18,18 @@ function setupSocketAPI(http) {
       if (socket.wapId) {
         socket.broadcast
           .to(socket.wapId)
-          .emit('userDisconnected', socket.cursorId)
+          
       }
       if (socket.guestData) {
         _sendGuestData(socket.adminId)
         return
       }
+    })
+
+    socket.on('formSubmited', (setMsg) => {
+      socket.broadcast.emit('formSent', setMsg)
+      
+      // socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor)
     })
 
     socket.on('joinWorkSpace', ({ wapId, cursorId }) => {
@@ -108,7 +114,10 @@ function setupSocketAPI(http) {
         //gIo.to(socket.adminId).emit('typing', userId);
         else gIo.to(socket.activeConversation).emit('typing', 'Admin')
       })
+
+    
   })
+  
 }
 
 async function addMsgFromAdmin(msg, guestId, adminSocket) {
