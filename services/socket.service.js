@@ -16,9 +16,7 @@ function setupSocketAPI(http) {
     socket.on('disconnect', () => {
       logger.info(`Socket disconnected [id: ${socket.id}]`)
       if (socket.wapId) {
-        socket.broadcast
-          .to(socket.wapId)
-          
+        socket.broadcast.to(socket.wapId)
       }
       if (socket.guestData) {
         _sendGuestData(socket.adminId)
@@ -28,7 +26,7 @@ function setupSocketAPI(http) {
 
     socket.on('formSubmited', (setMsg) => {
       socket.broadcast.emit('formSent', setMsg)
-      
+
       // socket.broadcast.to(socket.wapId).emit('mouseEvent', sendedCursor)
     })
 
@@ -66,12 +64,14 @@ function setupSocketAPI(http) {
       console.log('chatId, userId, adminId:', chatId, userId, adminId)
       if (adminId) {
         socket.userId = chatId
+        // socket.userId = '123'
         _sendGuestData(socket.userId)
         return
       }
 
       socket.guestData = { userId, unread: 0 }
       socket.adminId = chatId
+      // socket.adminId = '123'
       socket.userId = userId
 
       _sendGuestData(socket.adminId)
@@ -95,7 +95,7 @@ function setupSocketAPI(http) {
       )
 
       msg.id = socket.userId
-    
+
       if (!socket.adminId) {
         addMsgFromAdmin(msg, activeConversation, socket)
         return
@@ -115,9 +115,10 @@ function setupSocketAPI(http) {
         else gIo.to(socket.activeConversation).emit('typing', 'Admin')
       })
 
-    
+    // socket.on('manual-disconnect', () => {
+    //   socket.close()
+    // })
   })
-  
 }
 
 async function addMsgFromAdmin(msg, guestId, adminSocket) {
@@ -125,12 +126,12 @@ async function addMsgFromAdmin(msg, guestId, adminSocket) {
   if (!guestSocket) return //ADD user MSg
 
   msg.isFromAdmin = true
-//   console.log('guestSocket:', guestSocket.guestData)
+  //   console.log('guestSocket:', guestSocket.guestData)
   if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
   else {
     guestSocket.guestData.msgs = [msg]
   }
-  
+
   _sendGuestData(adminSocket.userId)
   guestSocket.emit('addAdminMsg', msg)
 }
@@ -148,7 +149,7 @@ async function _addMsgFromUser(msg, guestSocket, adminId) {
   }
 
   msg.id = adminId
-//   msg.isFromAdmin = true 
+  //   msg.isFromAdmin = true
   guestSocket.emit('addOwnMsg', msg)
 }
 
