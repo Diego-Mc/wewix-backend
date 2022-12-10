@@ -60,7 +60,6 @@ function setupSocketAPI(http) {
       }
     })
 
-<<<<<<< HEAD
     socket.on('joinChat', ({fromWap, guestId, adminRoom, isOwner}) => {
 
         if (isOwner) {
@@ -69,19 +68,6 @@ function setupSocketAPI(http) {
           _sendGuestDataTo(adminRoom)
           return
         }
-=======
-    socket.on('startConversation', ({ chatId, userId, adminId }) => {
-      console.log('chatId, userId, adminId:', chatId, userId, adminId)
-      if (adminId) {
-        socket.userId = chatId
-        _sendGuestData(socket.userId)
-        return
-      }
-
-      socket.guestData = { userId, unread: 0 }
-      socket.adminId = chatId
-      socket.userId = userId
->>>>>>> 69c64495de4a19829fb797f373567bbd4f1e8f7b
 
         socket.guestData = {}
         socket.guestData.msgs = []
@@ -119,36 +105,6 @@ function setupSocketAPI(http) {
 
         _sendGuestTyping(socket.guestData.to, socket.guestData.guestId)
     })
-<<<<<<< HEAD
-=======
-
-    socket.on('addMsg', ({ msg, activeConversation }) => {
-      console.log('msg:', msg)
-      logger.info(
-        `New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`
-      )
-
-      msg.id = socket.userId
-
-      if (!socket.adminId) {
-        addMsgFromAdmin(msg, activeConversation, socket)
-        return
-      }
-
-      _addMsgFromUser(msg, socket, socket.adminId)
-      _sendGuestData(socket.adminId)
-    }),
-      socket.on('typing', (userId) => {
-        if (socket.adminId)
-          emitToUser({
-            type: 'typing',
-            data: userId,
-            userId: socket.adminId,
-          })
-        //gIo.to(socket.adminId).emit('typing', userId);
-        else gIo.to(socket.activeConversation).emit('typing', 'Admin')
-      })
->>>>>>> 69c64495de4a19829fb797f373567bbd4f1e8f7b
   })
 }
 
