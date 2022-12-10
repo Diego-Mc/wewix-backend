@@ -64,14 +64,12 @@ function setupSocketAPI(http) {
       console.log('chatId, userId, adminId:', chatId, userId, adminId)
       if (adminId) {
         socket.userId = chatId
-        // socket.userId = '123'
         _sendGuestData(socket.userId)
         return
       }
 
       socket.guestData = { userId, unread: 0 }
       socket.adminId = chatId
-      // socket.adminId = '123'
       socket.userId = userId
 
       _sendGuestData(socket.adminId)
@@ -114,10 +112,6 @@ function setupSocketAPI(http) {
         //gIo.to(socket.adminId).emit('typing', userId);
         else gIo.to(socket.activeConversation).emit('typing', 'Admin')
       })
-
-    // socket.on('manual-disconnect', () => {
-    //   socket.close()
-    // })
   })
 }
 
