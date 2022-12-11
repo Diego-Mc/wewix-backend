@@ -18,6 +18,11 @@ async function login(username, password) {
     return user
 }
 
+async function googleLogin(userData) {
+   const user = await userService.googleLogin(userData)
+   return user
+}
+
 // (async ()=>{
 //     await signup('bubu', '123', 'Bubu Bi')
 //     await signup('mumu', '123', 'Mumu Maha')
@@ -60,5 +65,6 @@ module.exports = {
     signup,
     login,
     getLoginToken,
-    validateToken
+    validateToken,
+    googleLogin
 }

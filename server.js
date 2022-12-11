@@ -64,6 +64,7 @@ setupSocketAPI(http)
 //   passport.authenticate('google', { scope: ['email', 'profile'] },
 
 //   ));
+
 // app.get('/auth/google/callback',
 
 //   passport.authenticate('google',
@@ -71,8 +72,11 @@ setupSocketAPI(http)
 //       successRedirect: '/',
 //       failureRedirect: '/auth/google/failure'
 //     }),
+
 //   function (req, res) {
 //     console.log(req, res);
+
+
 //     // res.redirect('/~' + req.user.username);
 //   },
 
