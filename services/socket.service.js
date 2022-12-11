@@ -117,7 +117,7 @@ async function _sendGuestDataTo(adminRoom) {
     chatWithGuestData = guestsData.find(
       ({ guestId }) => guestId === adminSocket.adminChatWith
     )
-    chatWithGuestData.unread = 0
+    if (chatWithGuestData) chatWithGuestData.unread = 0
   }
 
   adminSocket.emit('updateAdminGuestData', guestsData)
