@@ -19,7 +19,7 @@ function setupSocketAPI(http) {
         socket.broadcast.to(socket.wapId)
       }
       if (socket.guestData) {
-        _sendGuestData(socket.adminId)
+        _sendGuestDataTo(socket.guestData.to)
         return
       }
     })
@@ -60,114 +60,90 @@ function setupSocketAPI(http) {
       }
     })
 
-    socket.on('startConversation', ({ chatId, userId, adminId }) => {
-      console.log('chatId, userId, adminId:', chatId, userId, adminId)
-      if (adminId) {
-        socket.userId = chatId
-        // socket.userId = '123'
-        _sendGuestData(socket.userId)
-        return
-      }
+    socket.on('joinChat', ({fromWap, guestId, adminRoom, isOwner}) => {
 
-      socket.guestData = { userId, unread: 0 }
-      socket.adminId = chatId
-      // socket.adminId = '123'
-      socket.userId = userId
+        if (isOwner) {
+          socket.adminRoom = adminRoom
+          socket.adminChatWith = ''
+          _sendGuestDataTo(adminRoom)
+          return
+        }
 
-      _sendGuestData(socket.adminId)
+        socket.guestData = {}
+        socket.guestData.msgs = []
+        socket.guestData.to = adminRoom
+        socket.guestData.fromWap = fromWap
+        socket.guestData.guestId = guestId
+
+        socket.guestData.unread = 0
     })
 
-    socket.on('activateChat', (guestId) => {
-      socket.activeConversation = guestId
-      _resetUnreadCount(guestId)
-      _sendGuestData(socket.userId)
+    socket.on('addMsg', msg => {
+
+        if (socket.adminRoom) {
+            _sendMsgToGuest(socket.adminChatWith, msg)
+            _sendGuestDataTo(socket.adminRoom)
+            return
+        }
+
+        socket.guestData.unread++
+        socket.guestData.msgs.push(msg)
+
+        _sendGuestDataTo(socket.guestData.to)
+        socket.emit('updateGuestMsgs', socket.guestData.msgs)
+    })
+    
+    socket.on('adminChatWith', guestId => {
+        socket.adminChatWith = guestId
     })
 
-    socket.on('leaveConversation', (chatId) => {
-      socket.guestData = null
-      _sendGuestData(chatId)
+    socket.on('typing', () => {
+        if (socket.adminRoom) {
+            _sendAdminTyping(socket.adminChatWith)
+            return
+        }
+
+        _sendGuestTyping(socket.guestData.to, socket.guestData.guestId)
     })
-
-    socket.on('addMsg', ({ msg, activeConversation }) => {
-      console.log('msg:', msg)
-      logger.info(
-        `New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.userId}`
-      )
-
-      msg.id = socket.userId
-
-      if (!socket.adminId) {
-        addMsgFromAdmin(msg, activeConversation, socket)
-        return
-      }
-
-      _addMsgFromUser(msg, socket, socket.adminId)
-      _sendGuestData(socket.adminId)
-    }),
-      socket.on('typing', (userId) => {
-        if (socket.adminId)
-          emitToUser({
-            type: 'typing',
-            data: userId,
-            userId: socket.adminId,
-          })
-        //gIo.to(socket.adminId).emit('typing', userId);
-        else gIo.to(socket.activeConversation).emit('typing', 'Admin')
-      })
-
-    // socket.on('manual-disconnect', () => {
-    //   socket.close()
-    // })
   })
 }
 
-async function addMsgFromAdmin(msg, guestId, adminSocket) {
-  const guestSocket = await _getUserSocket(guestId)
-  if (!guestSocket) return //ADD user MSg
 
-  msg.isFromAdmin = true
-  //   console.log('guestSocket:', guestSocket.guestData)
-  if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
-  else {
-    guestSocket.guestData.msgs = [msg]
-  }
-
-  _sendGuestData(adminSocket.userId)
-  guestSocket.emit('addAdminMsg', msg)
-}
-
-async function _addMsgFromUser(msg, guestSocket, adminId) {
-  const adminSocket = await _getUserSocket(adminId)
-
-  if (guestSocket.guestData?.msgs) guestSocket.guestData.msgs.push(msg)
-  else guestSocket.guestData.msgs = [msg]
-
-  if (adminSocket && adminSocket.activeConversation === guestSocket.userId)
-    guestSocket.guestData.unread = 0
-  else {
-    guestSocket.guestData.unread++
-  }
-
-  msg.id = adminId
-  //   msg.isFromAdmin = true
-  guestSocket.emit('addOwnMsg', msg)
-}
-
-async function _sendGuestData(adminId) {
-  const adminSocket = await _getUserSocket(adminId)
-
+async function _sendGuestDataTo(adminRoom) {
+  const adminSocket = await _getSocketByAdminRoom(adminRoom)
   if (!adminSocket) return
 
-  let guests = await _getAllGuestsData()
-  guests = guests.filter(
-    (guest) => guest && guest.userId !== adminSocket.userId
-  )
-  adminSocket.emit('updateGuests', guests)
+  const guestsData = await _getAllGuestsData()
+
+  //Clearing unread from 'adminChatWith' Guest
+  if (adminSocket.adminChatWith) {
+    chatWithGuestData = guestsData.find(({guestId}) => guestId === adminSocket.adminChatWith)
+    chatWithGuestData.unread = 0
+  }
+
+  adminSocket.emit('updateAdminGuestData', guestsData)
 }
 
-async function _resetUnreadCount(guestId) {
-  const guest = await _getUserSocket(guestId)
-  guest.guestData.unread = 0
+async function _sendMsgToGuest(guestId, msg) {
+    const guestSocket = await _getGuestSocket(guestId)
+    if (!guestSocket) return
+
+    guestSocket.guestData.msgs.push(msg)
+    guestSocket.emit('updateGuestMsgs', guestSocket.guestData.msgs)
+}
+
+async function _sendAdminTyping(guestId) {
+    const guestSocket = await _getGuestSocket(guestId)
+    if (!guestSocket) return
+
+    guestSocket.emit('initTyping')
+}
+
+async function _sendGuestTyping(adminRoom, guestId) {
+    const adminSocket = await _getSocketByAdminRoom(adminRoom) 
+    if (!adminSocket) return
+
+    adminSocket.emit('initTyping', guestId)
 }
 
 function emitTo({ type, data, label }) {
@@ -217,6 +193,19 @@ async function _getUserSocket(userId) {
   const socket = sockets.find((s) => s.userId === userId)
   return socket
 }
+
+async function _getSocketByAdminRoom(adminRoom) {
+  const sockets = await _getAllSockets()
+  const socket = sockets.find((s) => s.adminRoom === adminRoom)
+  return socket
+}
+
+async function _getGuestSocket(guestId) {
+  const sockets = await _getAllSockets()
+  const socket = sockets.find((s) => s.guestData?.guestId === guestId)
+  return socket
+}
+
 async function _getAllSockets() {
   // return all Socket instances
   const sockets = await gIo.fetchSockets()
@@ -224,10 +213,11 @@ async function _getAllSockets() {
 }
 
 async function _getAllGuestsData() {
-  // return all Socket instances
   const sockets = await gIo.fetchSockets()
-  const data = sockets.map((s) => s.guestData)
-  return data
+  const guestsData = sockets.map((s) => {
+    return s.guestData
+  }).filter(data => data)
+  return guestsData
 }
 
 async function _printSockets() {
