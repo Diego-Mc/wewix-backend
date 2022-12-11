@@ -29,9 +29,8 @@ async function googleLogin(userData) {
 // })()
     
 
-async function signup({username, password, fullname, imgUrl}) {
+async function signup({username, password, fullname, picture}) {
     const saltRounds = 10
-
     logger.debug(`auth.service - signup with username: ${username}, fullname: ${fullname}`)
     if (!username || !password || !fullname) return Promise.reject('Missing required signup information')
 
@@ -39,7 +38,7 @@ async function signup({username, password, fullname, imgUrl}) {
     if (userExist) return Promise.reject('Username already taken')
 
     const hash = await bcrypt.hash(password, saltRounds)
-    return userService.add({ username, password: hash, fullname, imgUrl })
+    return userService.add({ username, password: hash, fullname, picture })
 }
 
 

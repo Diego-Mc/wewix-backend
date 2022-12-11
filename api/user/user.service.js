@@ -94,12 +94,13 @@ async function update(user) {
 
 async function add(user) {
     try {
+
         // peek only updatable fields!
         const userToAdd = {
             username: user.username,
             password: user.password,
             fullname: user.fullname,
-            imgUrl: user.imgUrl,
+            picture: user.picture,
         }
         const collection = await dbService.getCollection('user')
         await collection.insertOne(userToAdd)
@@ -137,6 +138,7 @@ async function googleLogin(userData) {
         user = {
             username: userData.email,
             fullname: userData.name,
+            picture: userData.picture,
         }
         await collection.insertOne(user)
     }
