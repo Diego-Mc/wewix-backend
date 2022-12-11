@@ -18,15 +18,19 @@ async function login(username, password) {
     return user
 }
 
+async function googleLogin(userData) {
+   const user = await userService.googleLogin(userData)
+   return user
+}
+
 // (async ()=>{
 //     await signup('bubu', '123', 'Bubu Bi')
 //     await signup('mumu', '123', 'Mumu Maha')
 // })()
     
 
-async function signup({username, password, fullname, imgUrl}) {
+async function signup({username, password, fullname, picture}) {
     const saltRounds = 10
-
     logger.debug(`auth.service - signup with username: ${username}, fullname: ${fullname}`)
     if (!username || !password || !fullname) return Promise.reject('Missing required signup information')
 
@@ -34,7 +38,7 @@ async function signup({username, password, fullname, imgUrl}) {
     if (userExist) return Promise.reject('Username already taken')
 
     const hash = await bcrypt.hash(password, saltRounds)
-    return userService.add({ username, password: hash, fullname, imgUrl })
+    return userService.add({ username, password: hash, fullname, picture })
 }
 
 
@@ -60,5 +64,6 @@ module.exports = {
     signup,
     login,
     getLoginToken,
-    validateToken
+    validateToken,
+    googleLogin
 }

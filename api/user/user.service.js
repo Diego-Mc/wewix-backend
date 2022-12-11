@@ -11,7 +11,8 @@ module.exports = {
     remove,
     update,
     add,
-    findAndModify
+    googleLogin,
+
 }
 
 async function query(filterBy = {}) {
@@ -93,13 +94,13 @@ async function update(user) {
 
 async function add(user) {
     try {
+
         // peek only updatable fields!
         const userToAdd = {
             username: user.username,
             password: user.password,
             fullname: user.fullname,
-            imgUrl: user.imgUrl,
-            score: 100
+            picture: user.picture,
         }
         const collection = await dbService.getCollection('user')
         await collection.insertOne(userToAdd)
@@ -129,15 +130,17 @@ function _buildCriteria(filterBy) {
     return criteria
 }
 
-async function findAndModify(userData) {
+
+async function googleLogin(userData) {
     const collection = await dbService.getCollection('user')
     let user = await collection.findOne({ "username": userData.email })
     if (!user) {
-        const userToAdd = {
+        user = {
             username: userData.email,
-            fullname: userData.given_name + ' ' + userData.family_name,
+            fullname: userData.name,
+            picture: userData.picture,
         }
-        user = await collection.insertOne(userToAdd)
+        await collection.insertOne(user)
     }
     return user
 }

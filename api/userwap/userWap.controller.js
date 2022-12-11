@@ -43,7 +43,6 @@ async function addUserWap(req, res) {
         
         // Give the user credit for adding a userWap
         // var user = await userService.getById(userWap.byUserId)
-        // user.score += 10
 
         loggedinUser = await userService.update(loggedinUser)
         userWap.byUser = loggedinUser
