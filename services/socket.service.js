@@ -73,6 +73,7 @@ function setupSocketAPI(http) {
       socket.guestData.to = adminRoom
       socket.guestData.fromWap = fromWap
       socket.guestData.guestId = guestId
+      socket.guestData.createdAt = Date.now()
 
       socket.guestData.unread = 0
     })
@@ -111,7 +112,7 @@ async function _sendGuestDataTo(adminRoom) {
   if (!adminSocket) return
 
   const guestsData = await _getAllGuestsData()
-
+  console.log('guestsData:', guestsData)
   //Clearing unread from 'adminChatWith' Guest
   if (adminSocket.adminChatWith) {
     chatWithGuestData = guestsData.find(
@@ -217,7 +218,7 @@ async function _getAllGuestsData() {
     .map((s) => {
       return s.guestData
     })
-    .filter((data) => data)
+    .filter((data) => data && !data.adminRoom)
   return guestsData
 }
 
