@@ -1,4 +1,6 @@
 const express = require('express')
+const session = require('express-session');
+
 const cors = require('cors')
 const path = require('path')
 const cookieParser = require('cookie-parser')
@@ -41,12 +43,62 @@ app.use('/api/user', userRoutes)
 app.use('/api/wap', wapRoutes)
 setupSocketAPI(http)
 
+
+
+
+//google sign in ------------------------------------>
+// const passport = require('passport');
+// require('./auth');
+// function isLoggedIn(req, res, next) {
+//   req.user ? next() : res.sendStatus(401);
+// }
+// app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
+// app.use(passport.initialize());
+// app.use(passport.session());
+// app.get('/', (req, res) => {
+//   res.redirect('http://localhost:5173')
+//   // res.send('<a href="/auth/google">Authenticate with Google</a>');
+// });
+
+// app.get('/auth/google',
+//   passport.authenticate('google', { scope: ['email', 'profile'] },
+
+//   ));
+// app.get('/auth/google/callback',
+
+//   passport.authenticate('google',
+//     {
+//       successRedirect: '/',
+//       failureRedirect: '/auth/google/failure'
+//     }),
+//   function (req, res) {
+//     console.log(req, res);
+//     // res.redirect('/~' + req.user.username);
+//   },
+
+// )
+
+// app.get('/logout', (req, res) => {
+//   req.logout();
+//   req.session.destroy();
+//   res.send('Goodbye!');
+// });
+
+// app.get('/auth/google/failure', (req, res) => {
+//   res.send('Failed to authenticate..');
+// });
+
+//---------------------------------------------------->
+
+
 // Make every server-side-route to match the index.html
 // so when requesting http://localhost:3030/index.html/wap/123 it will still respond with
 // our SPA (single page app) (the index.html file) and allow vue/react-router to take it from there
 app.get('/**', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 })
+
+
 
 const logger = require('./services/logger.service')
 const port = process.env.PORT || 3030
