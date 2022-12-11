@@ -73,6 +73,8 @@ function setupSocketAPI(http) {
       socket.guestData.to = adminRoom
       socket.guestData.fromWap = fromWap
       socket.guestData.guestId = guestId
+      socket.guestData.createdAt = Date.now()
+
 
       socket.guestData.unread = 0
     })
@@ -114,10 +116,8 @@ async function _sendGuestDataTo(adminRoom) {
 
   //Clearing unread from 'adminChatWith' Guest
   if (adminSocket.adminChatWith) {
-    chatWithGuestData = guestsData.find(
-      ({ guestId }) => guestId === adminSocket.adminChatWith
-    )
-    chatWithGuestData.unread = 0
+    chatWithGuestData = guestsData.find(({ guestId }) => guestId === adminSocket.adminChatWith)
+    if (chatWithGuestData) chatWithGuestData.unread = 0
   }
 
   adminSocket.emit('updateAdminGuestData', guestsData)
