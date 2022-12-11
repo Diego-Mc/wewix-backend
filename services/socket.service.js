@@ -60,54 +60,51 @@ function setupSocketAPI(http) {
       }
     })
 
-    socket.on('joinChat', ({fromWap, guestId, adminRoom, isOwner}) => {
+    socket.on('joinChat', ({ fromWap, guestId, adminRoom, isOwner }) => {
+      if (isOwner) {
+        socket.adminRoom = adminRoom
+        socket.adminChatWith = ''
+        _sendGuestDataTo(adminRoom)
+        return
+      }
 
-        if (isOwner) {
-          socket.adminRoom = adminRoom
-          socket.adminChatWith = ''
-          _sendGuestDataTo(adminRoom)
-          return
-        }
+      socket.guestData = {}
+      socket.guestData.msgs = []
+      socket.guestData.to = adminRoom
+      socket.guestData.fromWap = fromWap
+      socket.guestData.guestId = guestId
 
-        socket.guestData = {}
-        socket.guestData.msgs = []
-        socket.guestData.to = adminRoom
-        socket.guestData.fromWap = fromWap
-        socket.guestData.guestId = guestId
-
-        socket.guestData.unread = 0
+      socket.guestData.unread = 0
     })
 
-    socket.on('addMsg', msg => {
+    socket.on('addMsg', (msg) => {
+      if (socket.adminRoom) {
+        _sendMsgToGuest(socket.adminChatWith, msg)
+        _sendGuestDataTo(socket.adminRoom)
+        return
+      }
 
-        if (socket.adminRoom) {
-            _sendMsgToGuest(socket.adminChatWith, msg)
-            _sendGuestDataTo(socket.adminRoom)
-            return
-        }
+      socket.guestData.unread++
+      socket.guestData.msgs.push(msg)
 
-        socket.guestData.unread++
-        socket.guestData.msgs.push(msg)
-
-        _sendGuestDataTo(socket.guestData.to)
-        socket.emit('updateGuestMsgs', socket.guestData.msgs)
+      _sendGuestDataTo(socket.guestData.to)
+      socket.emit('updateGuestMsgs', socket.guestData.msgs)
     })
-    
-    socket.on('adminChatWith', guestId => {
-        socket.adminChatWith = guestId
+
+    socket.on('adminChatWith', (guestId) => {
+      socket.adminChatWith = guestId
     })
 
     socket.on('typing', () => {
-        if (socket.adminRoom) {
-            _sendAdminTyping(socket.adminChatWith)
-            return
-        }
+      if (socket.adminRoom) {
+        _sendAdminTyping(socket.adminChatWith)
+        return
+      }
 
-        _sendGuestTyping(socket.guestData.to, socket.guestData.guestId)
+      _sendGuestTyping(socket.guestData.to, socket.guestData.guestId)
     })
   })
 }
-
 
 async function _sendGuestDataTo(adminRoom) {
   const adminSocket = await _getSocketByAdminRoom(adminRoom)
@@ -117,33 +114,35 @@ async function _sendGuestDataTo(adminRoom) {
 
   //Clearing unread from 'adminChatWith' Guest
   if (adminSocket.adminChatWith) {
-    chatWithGuestData = guestsData.find(({guestId}) => guestId === adminSocket.adminChatWith)
-    chatWithGuestData.unread = 0
+    chatWithGuestData = guestsData.find(
+      ({ guestId }) => guestId === adminSocket.adminChatWith
+    )
+    if (chatWithGuestData) chatWithGuestData.unread = 0
   }
 
   adminSocket.emit('updateAdminGuestData', guestsData)
 }
 
 async function _sendMsgToGuest(guestId, msg) {
-    const guestSocket = await _getGuestSocket(guestId)
-    if (!guestSocket) return
+  const guestSocket = await _getGuestSocket(guestId)
+  if (!guestSocket) return
 
-    guestSocket.guestData.msgs.push(msg)
-    guestSocket.emit('updateGuestMsgs', guestSocket.guestData.msgs)
+  guestSocket.guestData.msgs.push(msg)
+  guestSocket.emit('updateGuestMsgs', guestSocket.guestData.msgs)
 }
 
 async function _sendAdminTyping(guestId) {
-    const guestSocket = await _getGuestSocket(guestId)
-    if (!guestSocket) return
+  const guestSocket = await _getGuestSocket(guestId)
+  if (!guestSocket) return
 
-    guestSocket.emit('initTyping')
+  guestSocket.emit('initTyping')
 }
 
 async function _sendGuestTyping(adminRoom, guestId) {
-    const adminSocket = await _getSocketByAdminRoom(adminRoom) 
-    if (!adminSocket) return
+  const adminSocket = await _getSocketByAdminRoom(adminRoom)
+  if (!adminSocket) return
 
-    adminSocket.emit('initTyping', guestId)
+  adminSocket.emit('initTyping', guestId)
 }
 
 function emitTo({ type, data, label }) {
@@ -214,9 +213,11 @@ async function _getAllSockets() {
 
 async function _getAllGuestsData() {
   const sockets = await gIo.fetchSockets()
-  const guestsData = sockets.map((s) => {
-    return s.guestData
-  }).filter(data => data)
+  const guestsData = sockets
+    .map((s) => {
+      return s.guestData
+    })
+    .filter((data) => data)
   return guestsData
 }
 
