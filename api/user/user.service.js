@@ -10,7 +10,8 @@ module.exports = {
     getByUsername,
     remove,
     update,
-    add
+    add,
+    findAndModify
 }
 
 async function query(filterBy = {}) {
@@ -128,6 +129,15 @@ function _buildCriteria(filterBy) {
     return criteria
 }
 
-
-
-
+async function findAndModify(userData) {
+    const collection = await dbService.getCollection('user')
+    let user = await collection.findOne({ "username": userData.email })
+    if (!user) {
+        const userToAdd = {
+            username: userData.email,
+            fullname: userData.given_name + ' ' + userData.family_name,
+        }
+        user = await collection.insertOne(userToAdd)
+    }
+    return user
+}
