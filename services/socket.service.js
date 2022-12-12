@@ -20,6 +20,7 @@ function setupSocketAPI(http) {
       }
       if (socket.guestData) {
         _sendGuestDataTo(socket.guestData.to)
+        _guestDisconnect(socket)
         return
       }
     })
@@ -94,6 +95,7 @@ function setupSocketAPI(http) {
 
     socket.on('adminChatWith', (guestId) => {
       socket.adminChatWith = guestId
+      _resetUnreadCount(guestId)
     })
 
     socket.on('typing', () => {
@@ -112,14 +114,13 @@ async function _sendGuestDataTo(adminRoom) {
   if (!adminSocket) return
 
   const guestsData = await _getAllGuestsData()
-  console.log('guestsData:', guestsData)
   //Clearing unread from 'adminChatWith' Guest
-  if (adminSocket.adminChatWith) {
-    chatWithGuestData = guestsData.find(
-      ({ guestId }) => guestId === adminSocket.adminChatWith
-    )
-    if (chatWithGuestData) chatWithGuestData.unread = 0
-  }
+  // if (adminSocket.adminChatWith) {
+  //   chatWithGuestData = guestsData.find(
+  //     ({ guestId }) => guestId === adminSocket.adminChatWith
+  //   )
+  //   if (chatWithGuestData) chatWithGuestData.unread = 0
+  // }
 
   adminSocket.emit('updateAdminGuestData', guestsData)
 }
@@ -144,6 +145,22 @@ async function _sendGuestTyping(adminRoom, guestId) {
   if (!adminSocket) return
 
   adminSocket.emit('initTyping', guestId)
+}
+
+async function _guestDisconnect(socket) {
+    const adminSocket = await _getSocketByAdminRoom(socket.guestData.to)
+    if (!adminSocket) return
+
+    adminSocket.emit('guestDisconnected', socket.guestData.guestId)
+}
+
+async function _resetUnreadCount(guestId) {
+    const guestSocket = await _getGuestSocket(guestId)
+    if (!guestSocket) return
+    if (!guestSocket.guestData?.unread || !guestSocket.guestData?.to) return 
+    
+    guestSocket.guestData.unread = 0
+    _sendGuestDataTo(guestSocket.guestData.to)
 }
 
 function emitTo({ type, data, label }) {
