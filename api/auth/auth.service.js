@@ -6,7 +6,7 @@ const cryptr = new Cryptr(process.env.SECRET1 || 'Secret-Puk-1234')
 
 async function login(username, password) {
     logger.debug(`auth.service - login with username: ${username}`)
-
+    
     const user = await userService.getByUsername(username)
     if (!user) return Promise.reject('Invalid username or password')
     // TODO: un-comment for real login
@@ -19,21 +19,20 @@ async function login(username, password) {
 }
 
 async function googleLogin(userData) {
-   const user = await userService.googleLogin(userData)
-   return user
+    const user = await userService.googleLogin(userData)
+    return user
 }
 
 // (async ()=>{
 //     await signup('bubu', '123', 'Bubu Bi')
 //     await signup('mumu', '123', 'Mumu Maha')
 // })()
-    
 
-async function signup({username, password, fullname, picture}) {
+
+async function signup({ username, password, fullname, picture }) {
     const saltRounds = 10
     logger.debug(`auth.service - signup with username: ${username}, fullname: ${fullname}`)
     if (!username || !password || !fullname) return Promise.reject('Missing required signup information')
-
     const userExist = await userService.getByUsername(username)
     if (userExist) return Promise.reject('Username already taken')
 
@@ -41,10 +40,10 @@ async function signup({username, password, fullname, picture}) {
     return userService.add({ username, password: hash, fullname, picture })
 }
 
-
 function getLoginToken(user) {
-    const userInfo = {_id : user._id, fullname: user.fullname, isAdmin: user.isAdmin}
-    return cryptr.encrypt(JSON.stringify(userInfo))    
+    console.log('user', user);
+    const userInfo = { _id: user._id, fullname: user.fullname, isAdmin: user.isAdmin, picture: user.picture }
+    return cryptr.encrypt(JSON.stringify(userInfo))
 }
 
 function validateToken(loginToken) {
@@ -53,7 +52,7 @@ function validateToken(loginToken) {
         const loggedinUser = JSON.parse(json)
         return loggedinUser
 
-    } catch(err) {
+    } catch (err) {
         console.log('Invalid login token')
     }
     return null
