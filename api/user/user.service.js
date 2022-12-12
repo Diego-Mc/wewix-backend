@@ -81,6 +81,7 @@ async function update(user) {
             _id: ObjectId(user._id), // needed for the returnd obj
             fullname: user.fullname,
             waps: user.waps,
+            picture: user.picture,
         }
         console.log(userToSave)
         const collection = await dbService.getCollection('user')
