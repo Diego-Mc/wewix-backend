@@ -106,6 +106,10 @@ function setupSocketAPI(http) {
 
       _sendGuestTyping(socket.guestData.to, socket.guestData.guestId)
     })
+
+    socket.on('close', () => {
+        console.log('hey');
+    }) 
   })
 }
 
