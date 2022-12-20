@@ -1,5 +1,5 @@
 const express = require('express')
-const session = require('express-session');
+const session = require('express-session')
 
 const cors = require('cors')
 const path = require('path')
@@ -43,9 +43,6 @@ app.use('/api/user', userRoutes)
 app.use('/api/wap', wapRoutes)
 setupSocketAPI(http)
 
-
-
-
 //google sign in ------------------------------------>
 // const passport = require('passport');
 // require('./auth');
@@ -76,7 +73,6 @@ setupSocketAPI(http)
 //   function (req, res) {
 //     console.log(req, res);
 
-
 //     // res.redirect('/~' + req.user.username);
 //   },
 
@@ -94,15 +90,12 @@ setupSocketAPI(http)
 
 //---------------------------------------------------->
 
-
 // Make every server-side-route to match the index.html
 // so when requesting http://localhost:3030/index.html/wap/123 it will still respond with
 // our SPA (single page app) (the index.html file) and allow vue/react-router to take it from there
 app.get('/**', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 })
-
-
 
 const logger = require('./services/logger.service')
 const port = process.env.PORT || 3030
