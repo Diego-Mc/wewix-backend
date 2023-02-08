@@ -1,4 +1,4 @@
 module.exports = {
-  dbURL: 'mongodb+srv://wewix:wewix123321@wewix.azpvrit.mongodb.net/?retryWrites=true&w=majority',
-  dbName : 'wap_db'
+  dbURL: process.env.DB_URL,
+  dbName: 'wap_db',
 }
